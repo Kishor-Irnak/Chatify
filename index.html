@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCp3RanzzQ2lGf8HQ-XaGe_W1cuxZe0GVc",
+            authDomain: "authentication-a95dc.firebaseapp.com",
+            projectId: "authentication-a95dc",
+            storageBucket: "authentication-a95dc.appspot.com",
+            messagingSenderId: "263589613044",
+            appId: "1:263589613044:web:4df90594ae765365a3bda1",
+            measurementId: "G-21NE0GLRVY",
+            databaseURL: "https://authentication-a95dc-default-rtdb.firebaseio.com/"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const authPage = document.getElementById("auth-page");
+            const loginPage = document.getElementById("login-page");
+            const registerPage = document.getElementById("register-page");
+            const chatPage = document.getElementById("chat-page");
+            const messagesContainer = document.getElementById("messages");
+            const sendBtn = document.getElementById("sendBtn");
+            const logoutBtn = document.getElementById("logoutBtn");
+            let user;
+
+            document.getElementById("goToLogin").addEventListener("click", () => {
+                authPage.classList.add("hidden");
+                loginPage.classList.remove("hidden");
+            });
+
+            document.getElementById("goToRegister").addEventListener("click", () => {
+                authPage.classList.add("hidden");
+                registerPage.classList.remove("hidden");
+            });
+
+            document.getElementById("registerBtn").addEventListener("click", () => {
+                const email = document.getElementById("registerEmail").value;
+                const password = document.getElementById("registerPassword").value;
+                createUserWithEmailAndPassword(auth, email, password)
+                    .then(() => {
+                        registerPage.classList.add("hidden");
+                        loginPage.classList.remove("hidden");
+                    })
+                    .catch(error => alert(error.message));
+            });
+
+            document.getElementById("loginBtn").addEventListener("click", () => {
+                const email = document.getElementById("loginEmail").value;
+                const password = document.getElementById("loginPassword").value;
+                signInWithEmailAndPassword(auth, email, password)
+                    .then((result) => {
+                        user = result.user;
+                        loginPage.classList.add("hidden");
+                        chatPage.classList.remove("hidden");
+                    })
+                    .catch(error => alert(error.message));
+            });
+
+            logoutBtn.addEventListener("click", () => {
+                signOut(auth).then(() => {
+                    chatPage.classList.add("hidden");
+                    authPage.classList.remove("hidden");
+                });
+            });
+
+            sendBtn.addEventListener("click", () => {
+                const message = document.getElementById("messageInput").value;
+                if (message.trim()) {
+                    push(ref(db, "messages"), {
+                        name: user.email,
+                        text: message
+                    });
+                    document.getElementById("messageInput").value = "";
+                }
+            });
+
+            onChildAdded(ref(db, "messages"), (snapshot) => {
+                const msg = snapshot.val();
+                const msgElement = document.createElement("p");
+                msgElement.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
+                messagesContainer.appendChild(msgElement);
+            });
+        });
+    </script>
+</head>
+<body class="flex items-center justify-center h-screen bg-gray-100">
+    <div id="auth-page" class="text-center">
+        <h1 class="text-2xl font-bold">Welcome</h1>
+        <button id="goToLogin" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">Login</button>
+        <button id="goToRegister" class="mt-4 px-4 py-2 bg-green-500 text-white rounded">Register</button>
+    </div>
+
+    <div id="register-page" class="hidden text-center">
+        <h1 class="text-2xl font-bold">Register</h1>
+        <input id="registerEmail" type="email" placeholder="Email" class="border p-2 mt-2">
+        <input id="registerPassword" type="password" placeholder="Password" class="border p-2 mt-2">
+        <button id="registerBtn" class="mt-4 px-4 py-2 bg-green-500 text-white rounded">Register</button>
+    </div>
+
+    <div id="login-page" class="hidden text-center">
+        <h1 class="text-2xl font-bold">Login</h1>
+        <input id="loginEmail" type="email" placeholder="Email" class="border p-2 mt-2">
+        <input id="loginPassword" type="password" placeholder="Password" class="border p-2 mt-2">
+        <button id="loginBtn" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">Login</button>
+    </div>
+
+    <div id="chat-page" class="hidden w-96 bg-white p-4 shadow-lg rounded">
+        <div id="messages" class="h-64 overflow-y-auto p-2 border-b"></div>
+        <input id="messageInput" type="text" class="w-full p-2 border rounded mt-2" placeholder="Type a message...">
+        <button id="sendBtn" class="w-full mt-2 px-4 py-2 bg-green-500 text-white rounded">Send</button>
+        <button id="logoutBtn" class="w-full mt-2 px-4 py-2 bg-red-500 text-white rounded">Logout</button>
+    </div>
+</body>
+</html>
